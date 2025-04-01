@@ -1,0 +1,178 @@
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Pulsar</title>
+    <link href="css/stylefile.css" rel="stylesheet">
+    <style>
+        /* Стили для модального окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .contact-form__message {
+            margin-top: 15px;
+            min-height: 20px;
+            font-size: 14px;
+        }
+        .preloader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .preloader_active {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="body">
+    <!-- Ваш существующий HTML код -->
+    <div id="form">
+        <button id="openModal">Подписаться на рассылку</button>
+
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Подписка на рассылку</h2>
+                
+                <form id="form-contact" class="contact-form" autocomplete="off">
+                    <label for="email">Введите ваш email:</label>
+                    <input type="email" id="email" name="email" required placeholder="example@mail.com">
+
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="consent" name="consent" required>
+                        <label for="consent">Я согласен с обработкой персональных данных</label>
+                    </div>
+
+                    <button type="submit">Подписаться</button>
+                    <p class="contact-form__message"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Прелоадер -->
+    <div class="preloader">
+        <div>Отправка данных...</div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        // Конфигурация Telegram
+        const TELEGRAM_BOT_TOKEN = '8180342154:AAHRkLwiaUbYGJ3vQTWttuUREU-M80n5y2g';
+        const TELEGRAM_CHAT_ID = '-4675095648';
+
+        // Управление модальным окном
+        const modal = document.getElementById("modal");
+        const btn = document.getElementById("openModal");
+        const span = document.getElementsByClassName("close")[0];
+
+        btn.onclick = function() {
+            modal.style.display = "block";
+        }
+
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Обработка формы
+        $(document).ready(function() {
+            $(".contact-form").submit(function(event) {
+                event.preventDefault();
+
+                // Сообщения формы
+                const successSendText = "Подписка оформлена!";
+                const errorSendText = "Ошибка отправки. Попробуйте позже.";
+                const requiredFieldsText = "Заполните все обязательные поля";
+
+                const message = $(this).find(".contact-form__message");
+                const form = $(this);
+                const email = form.find("#email").val();
+                const consent = form.find("#consent").is(":checked");
+
+                // Валидация
+                if (!email || !consent) {
+                    message.text(requiredFieldsText).css("color", "#d42121");
+                    return;
+                }
+
+                // Показываем прелоадер
+                $(".preloader").addClass("preloader_active");
+
+                // Формируем сообщение для Telegram
+                const telegramMessage = `
+                    📢 Новая подписка
+                    Email: ${email}
+                    Согласие: Да
+                    Дата: ${new Date().toLocaleString()}
+                `.trim();
+
+                // Отправляем в Telegram
+                $.ajax({
+                    url: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+                    method: "POST",
+                    dataType: "json",
+                    data: {
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: telegramMessage,
+                        parse_mode: "HTML"
+                    },
+                    success: function(response) {
+                        $(".preloader").removeClass("preloader_active");
+                        
+                        if (response.ok) {
+                            message.text(successSendText).css("color", "#21d4bb");
+                            form[0].reset();
+                        } else {
+                            message.text(errorSendText).css("color", "#d42121");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $(".preloader").removeClass("preloader_active");
+                        message.text(errorSendText).css("color", "#d42121");
+                        console.error("Ошибка отправки:", error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
